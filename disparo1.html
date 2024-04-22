@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    body{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .container {
+        width: 600px;
+        height: 500px;
+        background-color: rgb(255, 255, 255);
+        border: 1px solid black;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+</style>
+<body>
+    <div class="container"></div>
+    <script>
+        const container = document.querySelector('.container');
+        let ship = {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+            speed: 10,
+            direction: undefined
+        }
+        let enemies = {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+            speed: 10,
+            direction: undefined,
+            enemies: [],
+            countEnemies: 0,
+        }
+        let lasers = [];
+        let laserCount=0;
+        let canShoot = true;
+        function shootLaser(){
+            if(!canShoot){
+                return;
+            }
+            let laser = {
+                x: ship.x + ship.width / 2,
+                y: ship.y,
+                width: 5,
+                height: 5,
+                speed: 10,
+                el: undefined
+            }
+            laser.el = document.createElement('div');
+            laser.el.style.width = `${laser.width}px`;
+            laser.el.style.height = `${laser.height}px`;
+            laser.el.style.backgroundColor = 'blue';
+            laser.el.style.position = 'absolute';
+            laser.el.style.top = `${laser.y}px`;
+            laser.el.style.left = `${laser.x}px`;
+            container.appendChild(laser.el);
+            lasers.push(laser);
+            laserCount++;
+            if(laserCount >= 10){
+                canShoot = false;
+            }
+        }
+        function createShip(){
+            var shipEl = document.createElement('div');
+            shipEl.style.width = `${ship.width}px`;
+            shipEl.style.height = '50px';
+            shipEl.style.backgroundColor = 'red';
+            shipEl.style.position = 'absolute';
+            shipEl.style.top = '90%';
+            shipEl.style.left = `
+                ${container.clientWidth / 2 - ship.width / 2}px
+            `;
+            container.appendChild(shipEl);
+            //ship.x = container.clientWidth / 2 - ship.width / 2;
+            ship.y = container.clientHeight - ship.height;
+        }
+        createShip();
+        document.addEventListener('keydown', function(e){
+            e.preventDefault();
+            if(e.key === 'd'){
+                ship.direction = 'right';
+            }
+            if(e.key === 'a'){
+                ship.direction = 'left';
+            }
+            if(e.key === ' '){
+                shootLaser();
+            }
+        });
+        document.addEventListener('keyup', function(e){
+            if(e.key === 'd' || e.key === 'a'){
+                ship.direction = '';
+            }
+            if(e.key === ' '){
+                canShoot = true;
+                laserCount = 0;
+            }
+        });
+        
+        function moveShip(){
+            if(ship.direction === 'right'){
+                ship.x += ship.speed;
+            }
+            if(ship.direction === 'left'){
+                ship.x -= ship.speed;
+            }
+            if(ship.x < 0){
+                ship.x = 0;
+            }
+            if(ship.x > container.clientWidth - ship.width){
+                ship.x = container.clientWidth - ship.width;
+            }
+            const shipEl = document.querySelector('.container div');
+            shipEl.style.left = `${ship.x}px`;
+        }
+        function moveLasers(){
+            for(let i = 0; i < lasers.length; i++){
+                let laser = lasers[i];
+                laser.y -= laser.speed;
+                if(laser.y < 0){
+                    container.removeChild(laser.el);
+                    lasers.splice(i, 1);
+                    i--;
+                }else{
+                    laser.el.style.top = `${laser.y}px`;
+                }
+            }
+        }
+        function gameLoop(){
+            moveShip();
+            moveLasers();
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>
