@@ -14,19 +14,64 @@
         margin: 0;
     }
     .container {
-        width: 600px;
-        height: 500px;
+        width: 900px;
+        height: 600px;
         background-color: rgb(255, 255, 255);
         border: 1px solid black;
         border-radius: 10px;
         position: relative;
         overflow: hidden;
+        opacity: .7;
+    }
+    @media (orientation: portrait) {
+        .wallpaper {
+            background-size: auto 100vh; /* Asegura que la imagen de fondo cubra todo el alto del dispositivo */
+        }
+    }
+    /* Estilos para dispositivos en orientación horizontal */
+    @media (orientation: landscape) {
+        .wallpaper {
+            background-size: 100vw auto; /* Asegura que la imagen de fondo cubra todo el ancho del dispositivo */
+        }
+    }
+    .holy-wallpapel{
+        background-image: url('./images/armagonFree2.jpg');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        width: 100vw;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: -1;
+    }
+    @media (orientation: portrait) {
+        .holy-wallpapel {
+            background-size: auto 100vh; /* Asegura que la imagen de fondo cubra todo el alto del dispositivo */
+        }
+    }
+    /* Estilos para dispositivos en orientación horizontal */
+    @media (orientation: landscape) {
+        .holy-wallpapel {
+            background-size: 100vw auto; /* Asegura que la imagen de fondo cubra todo el ancho del dispositivo */
+        }
     }
 </style>
 <body>
     <div class="container"></div>
     <script>
+        const pequeEnemy = new Audio('./images/enemigo.wav');
+        const cancion = new Audio('./images/laVida.wav');
         const container = document.querySelector('.container');
+        const holyWallpapel = document.createElement('div');
+        holyWallpapel.classList.add('holy-wallpapel');
+        document.querySelector('body').appendChild(holyWallpapel);
+        const imagesDir= [
+            './images/milibrodehistorias.jpeg',
+            './images/alataya.jpg',
+            './images/learn.jpg',
+        ]
         let ship = {
             x: 0,
             y: 0,
@@ -34,6 +79,15 @@
             height: 50,
             speed: 10,
             direction: undefined
+        }
+        let Witness = {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+            speed: 10,
+            direction: undefined
+            
         }
         let enemies = {
             x: 0,
@@ -48,6 +102,28 @@
         let lasers = [];
         let laserCount=0;
         let canShoot = true;
+        let gameOver = false;
+        function createEnemies(image){
+            let enemy = {
+                x: Math.floor(Math.random() * container.clientWidth - 100),
+                y: 0,
+                width: 50,
+                height: 50,
+                speed: 5,
+                el: undefined
+            }
+            enemy.el = new Image();
+            enemy.el.src = image;
+            enemy.el.style.width = `${enemy.width}px`;
+            enemy.el.style.height = `${enemy.height}px`;
+            enemy.el.style.position = 'absolute';
+            enemy.el.style.left = `${enemy.x}px`;
+            container.appendChild(enemy.el);
+            enemy.el.style.top = `${enemy.y}px`;
+            enemies.enemies.push(enemy);
+            enemies.countEnemies++;
+        }
+        createEnemies(imagesDir[1]);
         function shootLaser(){
             if(!canShoot){
                 return;
@@ -72,8 +148,15 @@
             laserCount++;
             if(laserCount >= 10){
                 canShoot = false;
+                setTimeout(function(){
+                    canShoot = true;
+                    laserCount = 0;
+                }, 100);
             }
         }
+        setInterval(function(){
+            createEnemies(imagesDir[Math.floor(Math.random() * imagesDir.length)]);
+        }, 4000);
         function createShip(){
             var shipEl = document.createElement('div');
             shipEl.style.width = `${ship.width}px`;
@@ -97,8 +180,37 @@
             if(e.key === 'a'){
                 ship.direction = 'left';
             }
-            if(e.key === ' '){
+            if(e.key === 'p'){
                 shootLaser();
+            }
+            if(e.key === 'c'){
+                ship= {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                    speed: 10,
+                    direction: undefined
+                }
+                enemies = {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                    speed: 10,
+                    direction: undefined,
+                    enemies: [],
+                    countEnemies: 0,
+                }
+                lasers = [];
+                laserCount=0;
+                canShoot = true;
+                gameOver = false;
+                const gameElements = document.querySelectorAll('.container div, .container img');
+                for (let i = 0; i < gameElements.length; i++) {
+                    container.removeChild(gameElements[i]);
+                }
+                createShip();
             }
         });
         document.addEventListener('keyup', function(e){
@@ -112,6 +224,9 @@
         });
         
         function moveShip(){
+            if (gameOver) {
+                return;
+            }
             if(ship.direction === 'right'){
                 ship.x += ship.speed;
             }
@@ -128,6 +243,9 @@
             shipEl.style.left = `${ship.x}px`;
         }
         function moveLasers(){
+            if(gameOver){
+                return;
+            }
             for(let i = 0; i < lasers.length; i++){
                 let laser = lasers[i];
                 laser.y -= laser.speed;
@@ -140,9 +258,70 @@
                 }
             }
         }
+        function checkCollision(laser, enemy){
+            if(laser.x < enemy.x + enemy.width &&
+                laser.x + laser.width > enemy.x &&
+                laser.y < enemy.y + enemy.height &&
+                laser.y + laser.height > enemy.y){
+                    return true;
+                }
+                return false;
+        }
+        function moveEnemies(){
+            if(gameOver){
+                return;
+            }
+            for(let i = 0; i < enemies.enemies.length; i++){
+                let enemy = enemies.enemies[i];
+                enemy.y += enemy.speed;
+                if(enemy.y > container.clientHeight){
+                    container.removeChild(enemy.el);
+                    enemies.enemies.splice(i, 1);
+                    i--;
+                }else{
+                    enemy.el.style.top = `${enemy.y}px`;
+                }
+            }
+        }
+        let wallpaper = document.createElement('div');
+        function addWallpaper(){
+            wallpaper.style.backgroundImage = 'url(./images/wallpaper.png)';
+            wallpaper.style.backgroundSize = 'cover';
+            wallpaper.style.backgroundRepeat = 'no-repeat';
+            wallpaper.style.backgroundPosition = 'center';
+            wallpaper.style.width = '100vw';
+            wallpaper.style.height = '100vh';
+            wallpaper.style.position = 'absolute';
+            wallpaper.style.top = '0';
+            wallpaper.style.left = '0';
+            wallpaper.style.display = 'block';
+            document.querySelector('body').appendChild(wallpaper);
+        }
+        addWallpaper();
+        document.addEventListener('click', function(){
+            wallpaper.style.display = 'none';
+            cancion.play();
+            cancion.loop = true;
+            cancion.volume = 0.1;
+        });
         function gameLoop(){
             moveShip();
             moveLasers();
+            moveEnemies();
+            for(let i = 0; i < lasers.length; i++){
+                for(let j = 0; j < enemies.enemies.length; j++){
+                    if(checkCollision(lasers[i], enemies.enemies[j])){
+                        container.removeChild(lasers[i].el);
+                        container.removeChild(enemies.enemies[j].el);
+                        pequeEnemy.play();
+                        pequeEnemy.volume = 0.3;
+                        lasers.splice(i, 1);
+                        enemies.enemies.splice(j, 1);
+                        i--;
+                        j--;
+                    }
+                }
+            }
             requestAnimationFrame(gameLoop);
         }
         gameLoop();
